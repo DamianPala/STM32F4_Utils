@@ -19,11 +19,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <stddef.h>
+#include <stdbool.h>
 #include "cmsis_device.h"
 
 /*----------------------------- LOCAL OBJECT-LIKE MACROS -------------------------------*/
 #define UTRACE_TMP_BUFFER_SIZE                          256
 #define DMAx_STREAM                                     DMA1_Stream6
+#define TRANSFER_TIMEOUT                                1000000
 
 /*---------------------------- LOCAL FUNCTION-LIKE MACROS ------------------------------*/
 
@@ -43,6 +45,7 @@
 
 /*---------------------------------- LOCAL OBJECTS -------------------------------------*/
 static char buffer[UTRACE_TMP_BUFFER_SIZE];
+static bool IsAfterFirstCall = false;
 
 /*======================================================================================*/
 /*                    ####### LOCAL FUNCTIONS PROTOTYPES #######                        */
@@ -63,7 +66,21 @@ void UTRACE_Init(void)
 
 void UTRACE_Write(const char* buffer, size_t nbyte)
 {
-//  if (DMA1->LISR & )
+  uint32_t timeout = TRANSFER_TIMEOUT;
+
+  if (IsAfterFirstCall)
+  {
+    while( (RESET == DMA_GetFlagStatus(DMAx_STREAM, DMA_FLAG_TCIF6)) && (timeout > 0) )
+    {
+      timeout--;
+    }
+    DMA_ClearFlag(DMAx_STREAM, DMA_FLAG_TCIF6);
+  }
+  else
+  {
+    IsAfterFirstCall = true;
+  }
+
   /* Set DMA buffer */
   DMAx_STREAM->M0AR = (uint32_t)buffer;
   /* Set DMA buffer size */
@@ -92,7 +109,6 @@ void UTRACE_Printf(const char* format, ...)
 void UTRACE_Puts(const char *str)
 {
   UTRACE_Write(str, strlen(str));
-  UTRACE_Write("\n", 1);
 }
 
 /*======================================================================================*/
@@ -134,11 +150,11 @@ void UART_Init(void)
 void DMA_Initialization(void)
 {
   DMA_InitTypeDef DMA_InitStructure;
-  NVIC_InitTypeDef NVIC_InitStructure;
 
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA1, ENABLE);
 
   DMA_DeInit(DMAx_STREAM);
+
   /* Config of DMAC */
   DMA_InitStructure.DMA_Channel           = DMA_Channel_4;
   DMA_InitStructure.DMA_BufferSize        = 1;
@@ -158,23 +174,6 @@ void DMA_Initialization(void)
   DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
   DMA_InitStructure.DMA_PeripheralInc      = DMA_PeripheralInc_Disable;
   DMA_Init(DMAx_STREAM, &DMA_InitStructure);
-
-//  DMA_ITConfig(DMAx_STREAM, DMA_IT_TC, ENABLE);
-//
-//  /* Init interrupt in core */
-//  NVIC_InitStructure.NVIC_IRQChannel                   = DMA1_Stream6_IRQn;
-//  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x05;
-//  NVIC_InitStructure.NVIC_IRQChannelSubPriority        = 0;
-//  NVIC_InitStructure.NVIC_IRQChannelCmd                = ENABLE;
-//  NVIC_Init(&NVIC_InitStructure);
-}
-
-void DMA1_Stream6_IRQHandler(void)
-{
-  if(DMA_GetITStatus(DMAx_STREAM, DMA_IT_TCIF6))
-  {
-    DMA_ClearITPendingBit(DMAx_STREAM, DMA_IT_TCIF6);
-  }
 }
 
 /**
