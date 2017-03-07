@@ -45,7 +45,6 @@
 
 /*---------------------------------- LOCAL OBJECTS -------------------------------------*/
 static char buffer[UTRACE_TMP_BUFFER_SIZE];
-static bool IsAfterFirstCall = false;
 
 /*======================================================================================*/
 /*                    ####### LOCAL FUNCTIONS PROTOTYPES #######                        */
@@ -53,6 +52,7 @@ static bool IsAfterFirstCall = false;
 void ConfigurePins(void);
 void UART_Init(void);
 void DMA_Initialization(void);
+void WaitForBufferEmpty(void);
 
 /*======================================================================================*/
 /*                  ####### EXPORTED FUNCTIONS DEFINITIONS #######                      */
@@ -66,21 +66,6 @@ void UTRACE_Init(void)
 
 void UTRACE_Write(const char* buffer, size_t nbyte)
 {
-  uint32_t timeout = TRANSFER_TIMEOUT;
-
-  if (IsAfterFirstCall)
-  {
-    while( (RESET == DMA_GetFlagStatus(DMAx_STREAM, DMA_FLAG_TCIF6)) && (timeout > 0) )
-    {
-      timeout--;
-    }
-    DMA_ClearFlag(DMAx_STREAM, DMA_FLAG_TCIF6);
-  }
-  else
-  {
-    IsAfterFirstCall = true;
-  }
-
   /* Set DMA buffer */
   DMAx_STREAM->M0AR = (uint32_t)buffer;
   /* Set DMA buffer size */
@@ -96,6 +81,7 @@ void UTRACE_Printf(const char* format, ...)
 
   va_start (ap, format);
 
+  WaitForBufferEmpty();
   ret = vsnprintf(buffer, sizeof(buffer), format, ap);
 
   if (ret > 0)
@@ -108,6 +94,7 @@ void UTRACE_Printf(const char* format, ...)
 
 void UTRACE_Puts(const char *str)
 {
+  WaitForBufferEmpty();
   UTRACE_Write(str, strlen(str));
 }
 
@@ -174,6 +161,25 @@ void DMA_Initialization(void)
   DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
   DMA_InitStructure.DMA_PeripheralInc      = DMA_PeripheralInc_Disable;
   DMA_Init(DMAx_STREAM, &DMA_InitStructure);
+}
+
+void WaitForBufferEmpty(void)
+{
+  uint32_t timeout = TRANSFER_TIMEOUT;
+  static bool IsAfterFirstCall = false;
+
+  if (IsAfterFirstCall)
+  {
+    while( (RESET == DMA_GetFlagStatus(DMAx_STREAM, DMA_FLAG_TCIF6)) && (timeout > 0) )
+    {
+      timeout--;
+    }
+    DMA_ClearFlag(DMAx_STREAM, DMA_FLAG_TCIF6);
+  }
+  else
+  {
+    IsAfterFirstCall = true;
+  }
 }
 
 /**

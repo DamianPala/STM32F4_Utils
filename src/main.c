@@ -39,11 +39,11 @@ int main(void)
   trace_puts("Hello ARM World!");
 
   trace_printf("System clock: %u Hz\n", SystemCoreClock);
-  
+
   for (uint8_t i = 0; i < 20; i++)
   {
     UTRACE_Printf("Works great %d\r\n", i);
-    UTRACE_Puts("Puts works OK \r\n");
+//    UTRACE_Puts("Puts works OK \r\n");
   }
 
   uint32_t seconds = 0;
