@@ -104,6 +104,8 @@ void UTRACE_Puts(const char *str)
 void ConfigurePins(void)
 {
   GPIO_InitTypeDef l_GPIO_InitStruct;
+
+  GPIO_StructInit(&l_GPIO_InitStruct);
   l_GPIO_InitStruct.GPIO_Mode                   = GPIO_Mode_AF;
   l_GPIO_InitStruct.GPIO_OType                  = GPIO_OType_PP;
   l_GPIO_InitStruct.GPIO_Pin                    = GPIO_Pin_2;
@@ -121,6 +123,7 @@ void UART_Init(void)
 {
   USART_InitTypeDef l_UART_InitStruct;
 
+  USART_StructInit(&l_UART_InitStruct);
   l_UART_InitStruct.USART_BaudRate              = 115200;
   l_UART_InitStruct.USART_HardwareFlowControl   = USART_HardwareFlowControl_None;
   l_UART_InitStruct.USART_Mode                  = USART_Mode_Tx;
@@ -142,6 +145,7 @@ void DMA_Initialization(void)
 
   DMA_DeInit(DMAx_STREAM);
 
+  DMA_StructInit(&DMA_InitStructure);
   /* Config of DMAC */
   DMA_InitStructure.DMA_Channel           = DMA_Channel_4;
   DMA_InitStructure.DMA_BufferSize        = 1;
